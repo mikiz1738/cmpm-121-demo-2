@@ -17,13 +17,48 @@ app.appendChild(title);
 
 // Create a canvas element
 const canvas = document.createElement('canvas');
-
-// Set the canvas pixel size
 canvas.width = 256;  // Width in pixels
 canvas.height = 256; // Height in pixels
-
-// Optionally, style the canvas (e.g., background color, border)
-canvas.style.border = "1px solid black"; // Adds a black border around the canvas
-
-// Append the canvas to the #app element
+canvas.classList.add('styled-canvas');
 app.appendChild(canvas);
+
+// Create a "Clear" button
+const clearButton = document.createElement('button');
+clearButton.textContent = "Clear Canvas";
+clearButton.style.marginTop = "20px";
+app.appendChild(clearButton);
+
+// Set up canvas drawing context
+const ctx = canvas.getContext("2d")!;
+ctx.lineWidth = 2;
+ctx.lineCap = 'round';
+ctx.strokeStyle = 'black';  // Color for the drawing
+
+// Variables to track the drawing state
+let isDrawing = false;
+
+// Function to start drawing
+canvas.addEventListener('mousedown', (event) => {
+    isDrawing = true;
+    ctx.beginPath();  // Start a new path
+    ctx.moveTo(event.offsetX, event.offsetY);  // Move to the initial mouse position
+});
+
+// Function to draw as the mouse moves
+canvas.addEventListener('mousemove', (event) => {
+    if (isDrawing) {
+        ctx.lineTo(event.offsetX, event.offsetY);  // Draw a line to the new mouse position
+        ctx.stroke();  // Render the line
+    }
+});
+
+// Function to stop drawing
+canvas.addEventListener('mouseup', () => {
+    isDrawing = false;
+    ctx.closePath();  // Close the current path
+});
+
+// Clear canvas when the user clicks the clear button
+clearButton.addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clear the entire canvas
+});
