@@ -5,14 +5,11 @@ const app = document.querySelector<HTMLDivElement>("#app")!;
 
 document.title = APP_NAME;
 
+// Create a title
 const title = document.createElement('h1');
 title.textContent = "A very fun time!";
-
-// Styling for the title
 title.style.color = 'black';
 title.style.textAlign = 'center';
-
-// Append the title to the #app element instead of the body
 app.appendChild(title);
 
 // Create a canvas element
@@ -22,7 +19,7 @@ canvas.height = 256; // Height in pixels
 canvas.classList.add('styled-canvas');
 app.appendChild(canvas);
 
-// Create a "Clear" button
+// Create buttons for "Clear", "Undo", and "Redo"
 const clearButton = document.createElement('button');
 clearButton.textContent = "Clear Canvas";
 clearButton.style.marginTop = "20px";
@@ -44,26 +41,53 @@ ctx.lineWidth = 2;
 ctx.lineCap = 'round';
 ctx.strokeStyle = 'black';
 
-// Variables to store the drawing data (array of paths, each path is an array of points)
-let paths: { x: number; y: number }[][] = [];  // Display list for undo
-let redoStack: { x: number; y: number }[][] = [];  // Redo stack
-let currentPath: { x: number; y: number }[] = [];
+// MarkerLine class representing a drawable line
+class MarkerLine {
+    private points: { x: number; y: number }[] = [];
+
+    constructor(startX: number, startY: number) {
+        this.points.push({ x: startX, y: startY });
+    }
+
+    // Method to extend the line as the user drags the mouse
+    drag(x: number, y: number) {
+        this.points.push({ x, y });
+    }
+
+    // Method to draw the line on the canvas context
+    display(ctx: CanvasRenderingContext2D) {
+        if (this.points.length < 2) return;
+        ctx.beginPath();
+        this.points.forEach((point, index) => {
+            if (index === 0) {
+                ctx.moveTo(point.x, point.y);
+            } else {
+                ctx.lineTo(point.x, point.y);
+            }
+        });
+        ctx.stroke();
+    }
+}
+
+// Variables to store the drawing data (array of MarkerLine objects)
+let paths: MarkerLine[] = [];  // Display list for undo
+let redoStack: MarkerLine[] = [];  // Redo stack
+let currentLine: MarkerLine | null = null;  // Active drawing line
 let isDrawing = false;
 
-// Function to start drawing (begin a new path)
+// Function to start drawing (create a new MarkerLine)
 canvas.addEventListener('mousedown', (event) => {
     isDrawing = true;
-    currentPath = [];  // Start a new path
-    paths.push(currentPath);  // Add the new path to the paths array
+    currentLine = new MarkerLine(event.offsetX, event.offsetY);  // Start a new line
+    paths.push(currentLine);  // Add the new line to the paths array
     redoStack = [];  // Clear the redo stack when a new drawing starts
-    addPoint(event);
     dispatchDrawingChanged();
 });
 
 // Function to add points as the mouse moves
 canvas.addEventListener('mousemove', (event) => {
-    if (isDrawing) {
-        addPoint(event);
+    if (isDrawing && currentLine) {
+        currentLine.drag(event.offsetX, event.offsetY);  // Extend the current line
         dispatchDrawingChanged();
     }
 });
@@ -71,13 +95,8 @@ canvas.addEventListener('mousemove', (event) => {
 // Function to stop drawing
 canvas.addEventListener('mouseup', () => {
     isDrawing = false;
+    currentLine = null;  // Clear the active line
 });
-
-// Function to add a point to the current path
-function addPoint(event: MouseEvent) {
-    const point = { x: event.offsetX, y: event.offsetY };
-    currentPath.push(point);
-}
 
 // Custom event dispatcher to notify that drawing has changed
 function dispatchDrawingChanged() {
@@ -98,17 +117,7 @@ function clearCanvas() {
 
 // Function to redraw the canvas from the paths array
 function redrawCanvas() {
-    paths.forEach(path => {
-        ctx.beginPath();
-        path.forEach((point, index) => {
-            if (index === 0) {
-                ctx.moveTo(point.x, point.y);  // Start at the first point of the path
-            } else {
-                ctx.lineTo(point.x, point.y);  // Draw a line to each subsequent point
-            }
-        });
-        ctx.stroke();
-    });
+    paths.forEach(path => path.display(ctx));
 }
 
 // Clear canvas when the user clicks the clear button
