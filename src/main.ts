@@ -76,40 +76,93 @@ class MarkerLine {
   }
 }
 
+// ToolPreview class to handle the preview circle
+class ToolPreview {
+  private x: number;
+  private y: number;
+  private radius: number;
+
+  constructor(radius: number) {
+    this.x = 0;
+    this.y = 0;
+    this.radius = radius / 2;
+  }
+
+  updatePosition(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = "gray";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
 // Variables to store the drawing data
 let paths: MarkerLine[] = [];
 let redoStack: MarkerLine[] = [];
 let currentLine: MarkerLine | null = null;
 let selectedLineWidth = 2;  // Default to "thin" marker
+let toolPreview: ToolPreview | null = new ToolPreview(selectedLineWidth);
 
 // Set up event listeners for thin and thick buttons
 function selectTool(button: HTMLButtonElement, lineWidth: number) {
   selectedLineWidth = lineWidth;
-  [thinButton, thickButton].forEach(btn => btn.classList.remove("selectedTool"));
+  toolPreview = new ToolPreview(lineWidth);
+  [thinButton, thickButton].forEach((btn) => btn.classList.remove("selectedTool"));
   button.classList.add("selectedTool");
 }
+
+selectTool(thinButton, 2);
 
 thinButton.addEventListener("click", () => selectTool(thinButton, 2));
 thickButton.addEventListener("click", () => selectTool(thickButton, 6));
 
-// Function to start drawing (create a new MarkerLine)
+// Start drawing (create a new MarkerLine)
 canvas.addEventListener("mousedown", (event) => {
   currentLine = new MarkerLine(event.offsetX, event.offsetY, selectedLineWidth);
   paths.push(currentLine);
   redoStack = [];
+  toolPreview = null;  // Hide preview while drawing
   canvas.addEventListener("mousemove", draw);
   dispatchDrawingChanged();
 });
 
 function draw(event: MouseEvent) {
   currentLine?.drag(event.offsetX, event.offsetY);
-  dispatchDrawingChanged();
+  clearCanvas();
+  redrawCanvas();
 }
 
 // Stop drawing
 canvas.addEventListener("mouseup", () => {
   canvas.removeEventListener("mousemove", draw);
   currentLine = null;
+  toolPreview = new ToolPreview(selectedLineWidth);  // Restore preview after drawing
+});
+
+// Custom event to update tool preview position
+canvas.addEventListener("mousemove", (event) => {
+  if (!currentLine && toolPreview) {
+    toolPreview.updatePosition(event.offsetX, event.offsetY);
+    dispatchToolMoved();
+  }
+});
+
+function dispatchToolMoved() {
+  const toolMovedEvent = new Event("tool-moved");
+  canvas.dispatchEvent(toolMovedEvent);
+}
+
+// Event listener to render tool preview
+canvas.addEventListener("tool-moved", () => {
+  clearCanvas();
+  redrawCanvas();
+  toolPreview?.draw(ctx);  // Only draw the preview when not drawing
 });
 
 function dispatchDrawingChanged() {
@@ -117,7 +170,6 @@ function dispatchDrawingChanged() {
   canvas.dispatchEvent(drawingChangedEvent);
 }
 
-// Observer for "drawing-changed" event
 canvas.addEventListener("drawing-changed", () => {
   clearCanvas();
   redrawCanvas();
