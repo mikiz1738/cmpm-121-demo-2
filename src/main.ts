@@ -1,14 +1,14 @@
 import "./style.css";
 
-const APP_NAME = "An Amazing Game!";
+const APP_NAME = "Magical Sketchbook!";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 document.title = APP_NAME;
 
 // Create a title
 const title = document.createElement("h1");
-title.textContent = "A very fun time!";
-title.style.color = "black";
+title.textContent = "Welcome to the Magical Sketchbook!";
+title.style.color = "darkslateblue";
 title.style.textAlign = "center";
 app.appendChild(title);
 
@@ -19,22 +19,23 @@ canvas.height = 256;
 canvas.classList.add("styled-canvas");
 app.appendChild(canvas);
 
-// Initial sticker configuration
-const stickersConfig = [
-  { text: "🐱 Cat", emoji: "🐱" },
-  { text: "🌟 Star", emoji: "🌟" },
-  { text: "❤️ Heart", emoji: "❤️" },
+// Initial charm (sticker) configuration with more magical emojis
+const charmsConfig = [
+  { text: "🦄 Unicorn", emoji: "🦄" },
+  { text: "🌈 Rainbow", emoji: "🌈" },
+  { text: "✨ Sparkles", emoji: "✨" },
+  { text: "🔥 Fire", emoji: "🔥" },
 ];
 
-// Create tool and sticker buttons
+// Create tool and charm buttons with quill and charm theme
 const buttonsConfig = [
-  { text: "Clear Canvas", id: "clear-button" },
+  { text: "Clear Sketchbook", id: "clear-button" },
   { text: "Undo", id: "undo-button" },
   { text: "Redo", id: "redo-button" },
-  { text: "Thin Marker", id: "thin-button" },
-  { text: "Thick Marker", id: "thick-button" },
-  { text: "Add Custom Sticker", id: "custom-sticker-button" },
-  { text: "Export", id: "export-button" }, // Added Export button config
+  { text: "Fine Quill", id: "fine-quill-button" },
+  { text: "Bold Quill", id: "bold-quill-button" },
+  { text: "Add Custom Charm", id: "custom-charm-button" },
+  { text: "Export", id: "export-button" },
 ];
 
 // Render tool buttons
@@ -42,38 +43,38 @@ buttonsConfig.forEach(({ text, id }) => {
   const button = document.createElement("button");
   button.textContent = text;
   button.id = id;
-  button.style.margin = "10px 5px";
+  button.classList.add("tool-button"); // Add CSS class for styling
   app.appendChild(button);
 });
 
-// Render sticker buttons
-stickersConfig.forEach(({ text, emoji }) => createStickerButton(text, emoji));
+// Render charm buttons
+charmsConfig.forEach(({ text, emoji }) => createCharmButton(text, emoji));
 
-function createStickerButton(text: string, emoji: string) {
+function createCharmButton(text: string, emoji: string) {
   const button = document.createElement("button");
   button.textContent = text;
   button.dataset.emoji = emoji;
-  button.style.margin = "10px 5px";
+  button.classList.add("charm-button"); // Add CSS class for charm styling
   app.appendChild(button);
 
-  button.addEventListener("click", () => selectSticker(emoji));
+  button.addEventListener("click", () => selectCharm(emoji));
 }
 
 const clearButton = document.getElementById("clear-button")!;
 const undoButton = document.getElementById("undo-button")!;
 const redoButton = document.getElementById("redo-button")!;
-const thinButton = document.getElementById("thin-button")!;
-const thickButton = document.getElementById("thick-button")!;
-const customStickerButton = document.getElementById("custom-sticker-button")!;
-const exportButton = document.getElementById("export-button")!; // Select Export button
+const fineQuillButton = document.getElementById("fine-quill-button")!;
+const boldQuillButton = document.getElementById("bold-quill-button")!;
+const customCharmButton = document.getElementById("custom-charm-button")!;
+const exportButton = document.getElementById("export-button")!;
 
 // Canvas drawing context
 const ctx = canvas.getContext("2d")!;
 ctx.lineCap = "round";
-ctx.strokeStyle = "black";
+ctx.strokeStyle = "midnightblue";
 
-// MarkerLine class for drawing lines
-class MarkerLine {
+// QuillLine class for drawing lines
+class QuillLine {
   private points: { x: number; y: number }[] = [];
   private lineWidth: number;
 
@@ -101,8 +102,8 @@ class MarkerLine {
   }
 }
 
-// Sticker class for placing and moving stickers
-class Sticker {
+// Charm class for placing and moving charms
+class Charm {
   private x: number;
   private y: number;
   private emoji: string;
@@ -119,52 +120,52 @@ class Sticker {
   }
 
   display(ctx: CanvasRenderingContext2D) {
-    ctx.font = "30px Arial";
+    ctx.font = "40px Arial"; // Larger size for more visibility
     ctx.fillText(this.emoji, this.x, this.y);
   }
 }
 
 // Variables to store drawing data
-let paths: MarkerLine[] = [];
-let stickers: Sticker[] = [];
-let redoStack: MarkerLine[] = [];
-let currentLine: MarkerLine | null = null;
-let selectedLineWidth = 2;
-let selectedSticker: string | null = null;
+let paths: QuillLine[] = [];
+let charms: Charm[] = [];
+let redoStack: QuillLine[] = [];
+let currentLine: QuillLine | null = null;
+let selectedLineWidth = 3; // Adjusted initial line width for better balance
+let selectedCharm: string | null = null;
 
 // Event listeners for tool buttons
-thinButton.addEventListener("click", () => selectTool(2));
-thickButton.addEventListener("click", () => selectTool(6));
+fineQuillButton.addEventListener("click", () => selectTool(2)); // Thinner quill
+boldQuillButton.addEventListener("click", () => selectTool(8)); // Thicker quill
 
-// Event listener for adding custom sticker
-customStickerButton.addEventListener("click", () => {
-  const userEmoji = prompt("Enter your custom sticker:", "🎉");
+// Event listener for adding custom charm
+customCharmButton.addEventListener("click", () => {
+  const userEmoji = prompt("Enter your custom charm:", "🌟");
   if (userEmoji) {
-    stickersConfig.push({ text: `Custom ${userEmoji}`, emoji: userEmoji });
-    createStickerButton(`Custom ${userEmoji}`, userEmoji);
+    charmsConfig.push({ text: `Custom ${userEmoji}`, emoji: userEmoji });
+    createCharmButton(`Custom ${userEmoji}`, userEmoji);
   }
 });
 
 // Event listener for export button
 exportButton.addEventListener("click", exportCanvas);
 
-// Set up tool and sticker selection
+// Set up tool and charm selection
 function selectTool(lineWidth: number) {
   selectedLineWidth = lineWidth;
-  selectedSticker = null;
+  selectedCharm = null;
 }
 
-function selectSticker(emoji: string) {
-  selectedSticker = emoji;
+function selectCharm(emoji: string) {
+  selectedCharm = emoji;
 }
 
-// Drawing and sticker placement
+// Drawing and charm placement
 canvas.addEventListener("mousedown", (event) => {
-  if (selectedSticker) {
-    const sticker = new Sticker(event.offsetX, event.offsetY, selectedSticker);
-    stickers.push(sticker);
+  if (selectedCharm) {
+    const charm = new Charm(event.offsetX, event.offsetY, selectedCharm);
+    charms.push(charm);
   } else {
-    currentLine = new MarkerLine(event.offsetX, event.offsetY, selectedLineWidth);
+    currentLine = new QuillLine(event.offsetX, event.offsetY, selectedLineWidth);
     paths.push(currentLine);
     redoStack = [];
   }
@@ -190,13 +191,13 @@ function clearCanvas() {
 
 function redrawCanvas() {
   paths.forEach((path) => path.display(ctx));
-  stickers.forEach((sticker) => sticker.display(ctx));
+  charms.forEach((charm) => charm.display(ctx));
 }
 
 // Clear, Undo, and Redo Button Events
 clearButton.addEventListener("click", () => {
   paths = [];
-  stickers = [];
+  charms = [];
   redoStack = [];
   clearCanvas();
 });
@@ -215,28 +216,24 @@ redoButton.addEventListener("click", () => {
 
 // Export Canvas as PNG function
 function exportCanvas() {
-  // Create a new 1024x1024 canvas
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
   exportCanvas.height = 1024;
   const exportCtx = exportCanvas.getContext("2d")!;
   
-  // Scale context to make it 4x larger
   exportCtx.scale(4, 4);
   
-  // Draw each path and sticker on the new canvas
   paths.forEach((path) => path.display(exportCtx));
-  stickers.forEach((sticker) => sticker.display(exportCtx));
+  charms.forEach((charm) => charm.display(exportCtx));
 
-  // Trigger a PNG download
   exportCanvas.toBlob((blob) => {
     if (blob) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "canvas_export.png";
+      link.download = "sketchbook_export.png";
       link.click();
-      URL.revokeObjectURL(url); // Clean up URL after download
+      URL.revokeObjectURL(url);
     }
   });
 }
