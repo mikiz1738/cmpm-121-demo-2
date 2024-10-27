@@ -34,6 +34,7 @@ const buttonsConfig = [
   { text: "Thin Marker", id: "thin-button" },
   { text: "Thick Marker", id: "thick-button" },
   { text: "Add Custom Sticker", id: "custom-sticker-button" },
+  { text: "Export", id: "export-button" }, // Added Export button config
 ];
 
 // Render tool buttons
@@ -64,6 +65,7 @@ const redoButton = document.getElementById("redo-button")!;
 const thinButton = document.getElementById("thin-button")!;
 const thickButton = document.getElementById("thick-button")!;
 const customStickerButton = document.getElementById("custom-sticker-button")!;
+const exportButton = document.getElementById("export-button")!; // Select Export button
 
 // Canvas drawing context
 const ctx = canvas.getContext("2d")!;
@@ -143,6 +145,9 @@ customStickerButton.addEventListener("click", () => {
   }
 });
 
+// Event listener for export button
+exportButton.addEventListener("click", exportCanvas);
+
 // Set up tool and sticker selection
 function selectTool(lineWidth: number) {
   selectedLineWidth = lineWidth;
@@ -207,3 +212,31 @@ redoButton.addEventListener("click", () => {
   clearCanvas();
   redrawCanvas();
 });
+
+// Export Canvas as PNG function
+function exportCanvas() {
+  // Create a new 1024x1024 canvas
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportCtx = exportCanvas.getContext("2d")!;
+  
+  // Scale context to make it 4x larger
+  exportCtx.scale(4, 4);
+  
+  // Draw each path and sticker on the new canvas
+  paths.forEach((path) => path.display(exportCtx));
+  stickers.forEach((sticker) => sticker.display(exportCtx));
+
+  // Trigger a PNG download
+  exportCanvas.toBlob((blob) => {
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "canvas_export.png";
+      link.click();
+      URL.revokeObjectURL(url); // Clean up URL after download
+    }
+  });
+}
