@@ -70,6 +70,29 @@ h1 {
   cursor: crosshair; /* Change cursor when over the canvas */
 }
 
+.tool-button,
+.charm-button {
+  padding: 10px 15px;
+  margin: 10px 5px;
+  font-size: 1rem;
+  background-color: #6a5acd; /* Slate Blue color */
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tool-button:hover,
+.charm-button:hover {
+  background-color: #483d8b; /* Darker slate blue */
+}
+
+.styled-canvas {
+  border: 2px solid #6a5acd;
+  display: block;
+  margin: 0 auto;
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;

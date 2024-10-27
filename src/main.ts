@@ -19,7 +19,11 @@ canvas.height = 256;
 canvas.classList.add("styled-canvas");
 app.appendChild(canvas);
 
-// Initial charm (sticker) configuration with more magical emojis
+// Preview area to show current tool settings
+const previewArea = document.createElement("div");
+previewArea.classList.add("preview-area");
+app.appendChild(previewArea);
+
 const charmsConfig = [
   { text: "🦄 Unicorn", emoji: "🦄" },
   { text: "🌈 Rainbow", emoji: "🌈" },
@@ -27,7 +31,6 @@ const charmsConfig = [
   { text: "🔥 Fire", emoji: "🔥" },
 ];
 
-// Create tool and charm buttons with quill and charm theme
 const buttonsConfig = [
   { text: "Clear Sketchbook", id: "clear-button" },
   { text: "Undo", id: "undo-button" },
@@ -43,21 +46,23 @@ buttonsConfig.forEach(({ text, id }) => {
   const button = document.createElement("button");
   button.textContent = text;
   button.id = id;
-  button.classList.add("tool-button"); // Add CSS class for styling
+  button.classList.add("tool-button");
   app.appendChild(button);
 });
 
-// Render charm buttons
 charmsConfig.forEach(({ text, emoji }) => createCharmButton(text, emoji));
 
 function createCharmButton(text: string, emoji: string) {
   const button = document.createElement("button");
   button.textContent = text;
   button.dataset.emoji = emoji;
-  button.classList.add("charm-button"); // Add CSS class for charm styling
+  button.classList.add("charm-button");
   app.appendChild(button);
 
-  button.addEventListener("click", () => selectCharm(emoji));
+  button.addEventListener("click", () => {
+    selectCharm(emoji);
+    updatePreview(); // Update preview on tool selection
+  });
 }
 
 const clearButton = document.getElementById("clear-button")!;
@@ -71,16 +76,16 @@ const exportButton = document.getElementById("export-button")!;
 // Canvas drawing context
 const ctx = canvas.getContext("2d")!;
 ctx.lineCap = "round";
-ctx.strokeStyle = "midnightblue";
 
-// QuillLine class for drawing lines
 class QuillLine {
   private points: { x: number; y: number }[] = [];
   private lineWidth: number;
+  private color: string;
 
-  constructor(startX: number, startY: number, lineWidth: number) {
+  constructor(startX: number, startY: number, lineWidth: number, color: string) {
     this.points.push({ x: startX, y: startY });
     this.lineWidth = lineWidth;
+    this.color = color;
   }
 
   drag(x: number, y: number) {
@@ -90,6 +95,7 @@ class QuillLine {
   display(ctx: CanvasRenderingContext2D) {
     if (this.points.length < 2) return;
     ctx.lineWidth = this.lineWidth;
+    ctx.strokeStyle = this.color;
     ctx.beginPath();
     this.points.forEach((point, index) => {
       if (index === 0) {
@@ -102,42 +108,50 @@ class QuillLine {
   }
 }
 
-// Charm class for placing and moving charms
 class Charm {
   private x: number;
   private y: number;
   private emoji: string;
+  private rotation: number;
 
-  constructor(x: number, y: number, emoji: string) {
+  constructor(x: number, y: number, emoji: string, rotation: number) {
     this.x = x;
     this.y = y;
     this.emoji = emoji;
-  }
-
-  drag(x: number, y: number) {
-    this.x = x;
-    this.y = y;
+    this.rotation = rotation;
   }
 
   display(ctx: CanvasRenderingContext2D) {
-    ctx.font = "40px Arial"; // Larger size for more visibility
-    ctx.fillText(this.emoji, this.x, this.y);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.font = "40px Arial";
+    ctx.fillText(this.emoji, 0, 0);
+    ctx.restore();
   }
 }
 
-// Variables to store drawing data
 let paths: QuillLine[] = [];
 let charms: Charm[] = [];
 let redoStack: QuillLine[] = [];
 let currentLine: QuillLine | null = null;
-let selectedLineWidth = 3; // Adjusted initial line width for better balance
+let selectedLineWidth = 3;
 let selectedCharm: string | null = null;
+let selectedColor = randomColor();
+let selectedRotation = randomRotation();
 
-// Event listeners for tool buttons
-fineQuillButton.addEventListener("click", () => selectTool(2)); // Thinner quill
-boldQuillButton.addEventListener("click", () => selectTool(8)); // Thicker quill
+fineQuillButton.addEventListener("click", () => {
+  selectTool(2);
+  selectedColor = randomColor();
+  updatePreview();
+});
 
-// Event listener for adding custom charm
+boldQuillButton.addEventListener("click", () => {
+  selectTool(8);
+  selectedColor = randomColor();
+  updatePreview();
+});
+
 customCharmButton.addEventListener("click", () => {
   const userEmoji = prompt("Enter your custom charm:", "🌟");
   if (userEmoji) {
@@ -146,10 +160,8 @@ customCharmButton.addEventListener("click", () => {
   }
 });
 
-// Event listener for export button
 exportButton.addEventListener("click", exportCanvas);
 
-// Set up tool and charm selection
 function selectTool(lineWidth: number) {
   selectedLineWidth = lineWidth;
   selectedCharm = null;
@@ -157,15 +169,15 @@ function selectTool(lineWidth: number) {
 
 function selectCharm(emoji: string) {
   selectedCharm = emoji;
+  selectedRotation = randomRotation();
 }
 
-// Drawing and charm placement
 canvas.addEventListener("mousedown", (event) => {
   if (selectedCharm) {
-    const charm = new Charm(event.offsetX, event.offsetY, selectedCharm);
+    const charm = new Charm(event.offsetX, event.offsetY, selectedCharm, selectedRotation);
     charms.push(charm);
   } else {
-    currentLine = new QuillLine(event.offsetX, event.offsetY, selectedLineWidth);
+    currentLine = new QuillLine(event.offsetX, event.offsetY, selectedLineWidth, selectedColor);
     paths.push(currentLine);
     redoStack = [];
   }
@@ -194,7 +206,6 @@ function redrawCanvas() {
   charms.forEach((charm) => charm.display(ctx));
 }
 
-// Clear, Undo, and Redo Button Events
 clearButton.addEventListener("click", () => {
   paths = [];
   charms = [];
@@ -214,7 +225,6 @@ redoButton.addEventListener("click", () => {
   redrawCanvas();
 });
 
-// Export Canvas as PNG function
 function exportCanvas() {
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
@@ -236,4 +246,19 @@ function exportCanvas() {
       URL.revokeObjectURL(url);
     }
   });
+}
+
+function randomColor() {
+  return `hsl(${Math.floor(Math.random() * 360)}, 80%, 60%)`;
+}
+
+function randomRotation() {
+  return Math.floor(Math.random() * 360);
+}
+
+function updatePreview() {
+  previewArea.textContent = selectedCharm
+    ? `Next Charm Rotation: ${selectedRotation}°`
+    : `Next Quill Color: ${selectedColor}`;
+  previewArea.style.color = selectedColor;
 }
