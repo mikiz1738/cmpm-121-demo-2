@@ -188,7 +188,7 @@ function draw(event: MouseEvent) {
   if (currentLine) {
     currentLine.drag(event.offsetX, event.offsetY);
   }
-  clearCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   redrawCanvas();
 }
 
@@ -196,10 +196,6 @@ canvas.addEventListener("mouseup", () => {
   canvas.removeEventListener("mousemove", draw);
   currentLine = null;
 });
-
-function clearCanvas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
 
 function redrawCanvas() {
   paths.forEach((path) => path.display(ctx));
@@ -210,18 +206,18 @@ clearButton.addEventListener("click", () => {
   paths = [];
   charms = [];
   redoStack = [];
-  clearCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
 undoButton.addEventListener("click", () => {
   if (paths.length > 0) redoStack.push(paths.pop()!);
-  clearCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   redrawCanvas();
 });
 
 redoButton.addEventListener("click", () => {
   if (redoStack.length > 0) paths.push(redoStack.pop()!);
-  clearCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   redrawCanvas();
 });
 
