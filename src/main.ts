@@ -258,3 +258,25 @@ function updatePreview() {
     : `Next Quill Color: ${selectedColor}`;
   previewArea.style.color = selectedColor;
 }
+
+// Add on-screen instructions
+function addInstructions() {
+  const instructions = document.createElement("div");
+  instructions.classList.add("instructions");
+  instructions.textContent = `
+    ✨ Welcome to the Magical Sketchbook! ✨
+    - Draw with the Fine or Bold Quill buttons. 
+    - Add fun charms like 🦄 or 🌈.
+    - Use the Clear, Undo, Redo, and Export buttons to manage your drawing.
+    - Add your own charm with the "Add Custom Charm" button.
+  `;
+  instructions.style.padding = "10px";
+  instructions.style.color = "#438490";
+  instructions.style.backgroundColor = "#ffebcd"; // Light background for contrast
+  instructions.style.textAlign = "center";
+  instructions.style.marginTop = "10px";
+  app.appendChild(instructions);
+}
+
+// Call the function to add instructions when the app loads
+addInstructions();
