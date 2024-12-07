@@ -1,5 +1,7 @@
+// Import CSS
 import "./style.css";
 
+// Constants
 const APP_NAME = "Magical Sketchbook!";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -50,6 +52,7 @@ buttonsConfig.forEach(({ text, id }) => {
   app.appendChild(button);
 });
 
+// Render charm buttons
 charmsConfig.forEach(({ text, emoji }) => createCharmButton(text, emoji));
 
 function createCharmButton(text: string, emoji: string) {
@@ -61,7 +64,7 @@ function createCharmButton(text: string, emoji: string) {
 
   button.addEventListener("click", () => {
     selectCharm(emoji);
-    updatePreview(); // Update preview on tool selection
+    updatePreview();
   });
 }
 
@@ -131,6 +134,7 @@ class Charm {
   }
 }
 
+// State variables
 let paths: QuillLine[] = [];
 let charms: Charm[] = [];
 let redoStack: QuillLine[] = [];
@@ -140,6 +144,7 @@ let selectedCharm: string | null = null;
 let selectedColor = randomColor();
 let selectedRotation = randomRotation();
 
+// Event handlers
 fineQuillButton.addEventListener("click", () => {
   selectTool(2);
   selectedColor = randomColor();
@@ -162,86 +167,62 @@ customCharmButton.addEventListener("click", () => {
 
 exportButton.addEventListener("click", exportCanvas);
 
-function selectTool(lineWidth: number) {
-  selectedLineWidth = lineWidth;
-  selectedCharm = null;
-}
-
-function selectCharm(emoji: string) {
-  selectedCharm = emoji;
-  selectedRotation = randomRotation();
-}
-
 canvas.addEventListener("mousedown", (event) => {
   if (selectedCharm) {
     const charm = new Charm(event.offsetX, event.offsetY, selectedCharm, selectedRotation);
     charms.push(charm);
+    dispatchDrawingChanged();
   } else {
     currentLine = new QuillLine(event.offsetX, event.offsetY, selectedLineWidth, selectedColor);
     paths.push(currentLine);
     redoStack = [];
+    canvas.addEventListener("mousemove", draw);
   }
-  canvas.addEventListener("mousemove", draw);
 });
-
-function draw(event: MouseEvent) {
-  if (currentLine) {
-    currentLine.drag(event.offsetX, event.offsetY);
-  }
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  redrawCanvas();
-}
 
 canvas.addEventListener("mouseup", () => {
   canvas.removeEventListener("mousemove", draw);
   currentLine = null;
 });
 
-function redrawCanvas() {
-  paths.forEach((path) => path.display(ctx));
-  charms.forEach((charm) => charm.display(ctx));
+function draw(event: MouseEvent) {
+  if (currentLine) {
+    currentLine.drag(event.offsetX, event.offsetY);
+    dispatchDrawingChanged();
+  }
 }
 
 clearButton.addEventListener("click", () => {
   paths = [];
   charms = [];
   redoStack = [];
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  dispatchDrawingChanged();
 });
 
 undoButton.addEventListener("click", () => {
   if (paths.length > 0) redoStack.push(paths.pop()!);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  redrawCanvas();
+  dispatchDrawingChanged();
 });
 
 redoButton.addEventListener("click", () => {
   if (redoStack.length > 0) paths.push(redoStack.pop()!);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  dispatchDrawingChanged();
+});
+
+// Redrawing logic using "drawing-changed" event
+document.addEventListener("drawing-changed", () => {
+  clearCanvas();
   redrawCanvas();
 });
 
-function exportCanvas() {
-  const exportCanvas = document.createElement("canvas");
-  exportCanvas.width = 1024;
-  exportCanvas.height = 1024;
-  const exportCtx = exportCanvas.getContext("2d")!;
-  
-  exportCtx.scale(4, 4);
-  
-  paths.forEach((path) => path.display(exportCtx));
-  charms.forEach((charm) => charm.display(exportCtx));
+// Helper functions
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
 
-  exportCanvas.toBlob((blob) => {
-    if (blob) {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "sketchbook_export.png";
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-  });
+function redrawCanvas() {
+  paths.forEach((path) => path.display(ctx));
+  charms.forEach((charm) => charm.display(ctx));
 }
 
 function randomColor() {
@@ -259,24 +240,38 @@ function updatePreview() {
   previewArea.style.color = selectedColor;
 }
 
-// Add on-screen instructions
-function addInstructions() {
-  const instructions = document.createElement("div");
-  instructions.classList.add("instructions");
-  instructions.textContent = `
-    ✨ Welcome to the Magical Sketchbook! ✨
-    - Draw with the Fine or Bold Quill buttons. 
-    - Add fun charms like 🦄 or 🌈.
-    - Use the Clear, Undo, Redo, and Export buttons to manage your drawing.
-    - Add your own charm with the "Add Custom Charm" button.
-  `;
-  instructions.style.padding = "10px";
-  instructions.style.color = "#438490";
-  instructions.style.backgroundColor = "#ffebcd"; // Light background for contrast
-  instructions.style.textAlign = "center";
-  instructions.style.marginTop = "10px";
-  app.appendChild(instructions);
+function selectTool(lineWidth: number) {
+  selectedLineWidth = lineWidth;
+  selectedCharm = null;
 }
 
-// Call the function to add instructions when the app loads
-addInstructions();
+function selectCharm(emoji: string) {
+  selectedCharm = emoji;
+  selectedRotation = randomRotation();
+}
+
+function dispatchDrawingChanged() {
+  const event = new Event("drawing-changed");
+  document.dispatchEvent(event);
+}
+
+function exportCanvas() {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportCtx = exportCanvas.getContext("2d")!;
+  exportCtx.scale(4, 4);
+  paths.forEach((path) => path.display(exportCtx));
+  charms.forEach((charm) => charm.display(exportCtx));
+
+  exportCanvas.toBlob((blob) => {
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "sketchbook_export.png";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+}
