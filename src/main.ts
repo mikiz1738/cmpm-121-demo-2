@@ -3,7 +3,7 @@ import "./style.css";
 
 // Constants
 const APP_NAME = "Magical Sketchbook!";
-const app = document.querySelector<HTMLDivElement>("#app")!;
+const app = document.querySelector<HTMLDivElement>('#app')!;
 
 document.title = APP_NAME;
 
@@ -137,7 +137,7 @@ class Charm {
 // State variables
 let paths: QuillLine[] = [];
 let charms: Charm[] = [];
-let redoStack: QuillLine[] = [];
+let redoStack: { paths: QuillLine[]; charms: Charm[] }[] = [];
 let currentLine: QuillLine | null = null;
 let selectedLineWidth = 3;
 let selectedCharm: string | null = null;
@@ -171,6 +171,7 @@ canvas.addEventListener("mousedown", (event) => {
   if (selectedCharm) {
     const charm = new Charm(event.offsetX, event.offsetY, selectedCharm, selectedRotation);
     charms.push(charm);
+    pushState();
     dispatchDrawingChanged();
   } else {
     currentLine = new QuillLine(event.offsetX, event.offsetY, selectedLineWidth, selectedColor);
@@ -183,6 +184,19 @@ canvas.addEventListener("mousedown", (event) => {
 canvas.addEventListener("mouseup", () => {
   canvas.removeEventListener("mousemove", draw);
   currentLine = null;
+});
+
+canvas.addEventListener("mousemove", (event) => {
+  if (selectedCharm) {
+    clearCanvas();
+    redrawCanvas();
+    ctx.save();
+    ctx.translate(event.offsetX, event.offsetY);
+    ctx.rotate((selectedRotation * Math.PI) / 180);
+    ctx.font = "40px Arial";
+    ctx.fillText(selectedCharm, 0, 0);
+    ctx.restore();
+  }
 });
 
 function draw(event: MouseEvent) {
@@ -200,13 +214,21 @@ clearButton.addEventListener("click", () => {
 });
 
 undoButton.addEventListener("click", () => {
-  if (paths.length > 0) redoStack.push(paths.pop()!);
-  dispatchDrawingChanged();
+  if (paths.length > 0 || charms.length > 0) {
+    redoStack.push({ paths: [...paths], charms: [...charms] });
+    if (paths.length > 0) paths.pop();
+    else charms.pop();
+    dispatchDrawingChanged();
+  }
 });
 
 redoButton.addEventListener("click", () => {
-  if (redoStack.length > 0) paths.push(redoStack.pop()!);
-  dispatchDrawingChanged();
+  if (redoStack.length > 0) {
+    const { paths: redoPaths, charms: redoCharms } = redoStack.pop()!;
+    paths = redoPaths;
+    charms = redoCharms;
+    dispatchDrawingChanged();
+  }
 });
 
 // Redrawing logic using "drawing-changed" event
@@ -253,6 +275,10 @@ function selectCharm(emoji: string) {
 function dispatchDrawingChanged() {
   const event = new Event("drawing-changed");
   document.dispatchEvent(event);
+}
+
+function pushState() {
+  redoStack.push({ paths: [...paths], charms: [...charms] });
 }
 
 function exportCanvas() {
